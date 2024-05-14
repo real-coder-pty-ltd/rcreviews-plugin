@@ -909,6 +909,7 @@ class Rcreviews_Admin {
 				'class_content'       => 'mt-2',
 				'class_btn_wrapper'   => 'd-flex justify-content-center',
 				'class_btn'           => 'btn btn-outline-dark fw-semibold py-3 px-4',
+				'class_no_results'    => '',
 			),
 			$atts,
 			'rcreviews'
@@ -978,19 +979,24 @@ class Rcreviews_Admin {
 			}
 			return $output;
 		}
-		function rcreviews_add_space_before( $string ) {
-			if ( $string != '' ) {
-				return ' ' . $string;
+		function rcreviews_check_class( $string, $view ) {
+
+			if ( 'unstyled' != $view ) {
+				if ( '' != $string ) {
+					return ' ' . $string;
+				} else {
+					return '';
+				}
 			} else {
 				return '';
 			}
 		}
-
-		$output .= '<section class="rcreviews--section' . rcreviews_add_space_before( $atts['class_section'] ) . '">';
-		$output .= '<div class="rcreviews--container' . rcreviews_add_space_before( $atts['class_container'] ) . '"> ';
-		$output .= '<div class="rcreviews--row' . rcreviews_add_space_before( $atts['class_row'] ) . '">';
-
 		if ( $query->have_posts() ) {
+
+			$output .= '<section class="rcreviews--section' . rcreviews_check_class( $atts['class_section'], $atts['view'] ) . '">';
+			$output .= '<div class="rcreviews--container' . rcreviews_check_class( $atts['class_container'], $atts['view'] ) . '"> ';
+			$output .= '<div class="rcreviews--row' . rcreviews_check_class( $atts['class_row'], $atts['view'] ) . '">';
+
 			while ( $query->have_posts() ) {
 				$query->the_post();
 
@@ -1000,44 +1006,46 @@ class Rcreviews_Admin {
 					$class_visibility = ' rcreviews--hidden-review d-none';
 				}
 
-				$output .= '<article class="rcreviews--article col' . $class_visibility . rcreviews_add_space_before( $atts['class_article'] ) . '" id="rcreviews-' . get_the_ID() . '" data-agent-id="' . get_post_meta( get_the_ID(), 'rcreview_agent_id', true ) . '">';
-				$output .= '<div class="rcreviews--card' . rcreviews_add_space_before( $atts['class_card'] ) . '">';
-				$output .= '<div class="rcreviews--inner-row' . rcreviews_add_space_before( $atts['class_inner_row'] ) . '">';
-				$output .= '<div class="rcreviews--rating' . rcreviews_add_space_before( $atts['class_rating'] ) . '">';
-				$output .= '<div class="rcreviews--rating-stars' . rcreviews_add_space_before( $atts['class_rating_stars'] ) . '">' . rcreviews_rating( get_post_meta( get_the_ID(), 'rcreview_reviewer_rating', true ) ) . '</div>';
-				$output .= '<div class="rcreviews-rating-number' . rcreviews_add_space_before( $atts['class_rating_number'] ) . '">' . number_format( get_post_meta( get_the_ID(), 'rcreview_reviewer_rating', true ), 1 ) . '</div>';
+				$output .= '<article class="rcreviews--article col' . $class_visibility . rcreviews_check_class( $atts['class_article'], $atts['view'] ) . '" id="rcreviews-' . get_the_ID() . '" data-agent-id="' . get_post_meta( get_the_ID(), 'rcreview_agent_id', true ) . '">';
+				$output .= '<div class="rcreviews--card' . rcreviews_check_class( $atts['class_card'], $atts['view'] ) . '">';
+				$output .= '<div class="rcreviews--inner-row' . rcreviews_check_class( $atts['class_inner_row'], $atts['view'] ) . '">';
+				$output .= '<div class="rcreviews--rating' . rcreviews_check_class( $atts['class_rating'], $atts['view'] ) . '">';
+				$output .= '<div class="rcreviews--rating-stars' . rcreviews_check_class( $atts['class_rating_stars'], $atts['view'] ) . '">' . rcreviews_rating( get_post_meta( get_the_ID(), 'rcreview_reviewer_rating', true ) ) . '</div>';
+				$output .= '<div class="rcreviews-rating-number' . rcreviews_check_class( $atts['class_rating_number'], $atts['view'] ) . '">' . number_format( get_post_meta( get_the_ID(), 'rcreview_reviewer_rating', true ), 1 ) . '</div>';
 				$output .= '</div>';
-				$output .= '<div class="rcreviews--badge' . rcreviews_add_space_before( $atts['class_badge'] ) . '">' . $badge . 'Verified review</div>';
+				$output .= '<div class="rcreviews--badge' . rcreviews_check_class( $atts['class_badge'], $atts['view'] ) . '">' . $badge . 'Verified review</div>';
 				$output .= '</div>';
-				$output .= '<div class="rcreviews--title' . rcreviews_add_space_before( $atts['class_title'] ) . '"><strong>' . get_the_title() . '</strong></div>';
-				$output .= '<div class="rcreviews--date' . rcreviews_add_space_before( $atts['class_date'] ) . '"><small>' . human_time_diff( get_the_time( 'U' ), current_time( 'timestamp' ) ) . ' ago</small></div>';
-				$output .= '<div class="rcreviews--content' . rcreviews_add_space_before( $atts['class_content'] ) . '">' . get_the_content() . '</div>';
+				$output .= '<div class="rcreviews--title' . rcreviews_check_class( $atts['class_title'], $atts['view'] ) . '"><strong>' . get_the_title() . '</strong></div>';
+				$output .= '<div class="rcreviews--date' . rcreviews_check_class( $atts['class_date'], $atts['view'] ) . '"><small>' . human_time_diff( get_the_time( 'U' ), current_time( 'timestamp' ) ) . ' ago</small></div>';
+				$output .= '<div class="rcreviews--content' . rcreviews_check_class( $atts['class_content'], $atts['view'] ) . '">' . get_the_content() . '</div>';
 				$output .= '</div>';
 				$output .= '</article>';
 			}
+
+			$output .= '</div>';
+
+			if ( ! empty( $atts['max_reviews'] ) && $atts['max_reviews'] > 0 ) {
+				if ( $atts['max_reviews'] > $atts['shown_reviews'] ) {
+					$output .= '<div class="rcreviews--btn-wrapper' . rcreviews_check_class( $atts['class_btn_wrapper'], $atts['view'] ) . '">';
+					$output .= '<button class="rcreviews--btn' . rcreviews_check_class( $atts['class_btn'], $atts['view'] ) . '"><span class="rcreviews--label">Show</span> <span class="rcreviews--count">' . $atts['max_reviews'] - $atts['shown_reviews'] . '</span> reviews</button>';
+					$output .= '</div>';
+				}
+			} elseif ( $query->found_posts > $atts['shown_reviews'] ) {
+					$output .= '<div class="rcreviews--btn-wrapper' . rcreviews_check_class( $atts['class_btn_wrapper'], $atts['view'] ) . '">';
+					$output .= '<button class="rcreviews--btn' . rcreviews_check_class( $atts['class_btn'], $atts['view'] ) . '"><span class="rcreviews--label">Show</span> <span class="rcreviews--count">' . $query->found_posts - $atts['shown_reviews'] . '</span> reviews</button>';
+					$output .= '</div>';
+			}
+			$output .= '</div>';
+			$output .= '</section>';
 
 			// Restore original Post Data
 			wp_reset_postdata();
 		} else {
 			// No posts found
-			echo 'No reviews found.';
+			$output .= '<div class="rcreviews--no-results' . rcreviews_check_class( $atts['class_no_results'], $atts['view'] ) . '">';
+			$output .= 'No reviews found.';
+			$output .= '</div>';
 		}
-
-		$output .= '</div>';
-
-		if ( ! empty( $atts['max_reviews'] ) && $atts['max_reviews'] > 0 ) {
-			if ( $atts['max_reviews'] > $atts['shown_reviews'] ) {
-				$output .= '<div class="rcreviews--btn-wrapper' . rcreviews_add_space_before( $atts['class_btn_wrapper'] ) . '">';
-				$output .= '<button class="rcreviews--btn' . rcreviews_add_space_before( $atts['class_btn'] ) . '"><span class="rcreviews--label">Show</span> <span class="rcreviews--count">' . $atts['max_reviews'] - $atts['shown_reviews'] . '</span> reviews</button>';
-				$output .= '</div>';
-			}
-		} elseif ( $query->found_posts > $atts['shown_reviews'] ) {
-				$output .= '<div class="rcreviews--btn-wrapper' . rcreviews_add_space_before( $atts['class_btn_wrapper'] ) . '">';
-				$output .= '<button class="rcreviews--btn' . rcreviews_add_space_before( $atts['class_btn'] ) . '"><span class="rcreviews--label">Show</span> <span class="rcreviews--count">' . $query->found_posts - $atts['shown_reviews'] . '</span> reviews</button>';
-				$output .= '</div>';
-		}
-		$output .= '</div>';
-		$output .= '</section>';
 
 		return $output;
 	}
