@@ -22,11 +22,17 @@
 	<hr>
 
 	<?php
-
-	$args = array(
-		'post_type'      => 'rcreviews',
-		'post_status'    => 'publish',
+	$post_type = get_option( 'rcreviews_custom_post_type_slug' ) ?  : 'rcreviews';
+	$args      = array(
+		'post_type'      => $post_type,
 		'posts_per_page' => -1,
+		'meta_query'     => array(
+			array(
+				'key'     => 'rcreview_unique_id',
+				'value'   => '',
+				'compare' => '!=',
+			),
+		),
 	);
 
 	$query       = new WP_Query( $args );
@@ -37,17 +43,17 @@
 	$last_import  = get_option( 'rcreviews_last_import' );
 
 	$minimum_star_rating = get_option( 'rcreviews_minimum_star_rating' );
-	$numbers = '';
+	$numbers             = '';
 
-	if ($minimum_star_rating){
-		for ($i = $minimum_star_rating; $i <= 5; $i++) {
+	if ( $minimum_star_rating ) {
+		for ( $i = $minimum_star_rating; $i <= 5; $i++ ) {
 			$numbers .= $i . ',';
 		}
-		$minimum_star_rating = '&ratings=' . rtrim($numbers, ',');
+		$minimum_star_rating = '&ratings=' . rtrim( $numbers, ',' );
 	} else {
 		$minimum_star_rating = '';
 	}
-	$url          = 'https://api.realestate.com.au/customer-profile/v1/ratings-reviews/agencies/' . $agency_id . '?since=2010-09-06T12%3A27%3A00.1Z&order=DESC' . $minimum_star_rating;
+	$url = 'https://api.realestate.com.au/customer-profile/v1/ratings-reviews/agencies/' . $agency_id . '?since=2010-09-06T12%3A27%3A00.1Z&order=DESC' . $minimum_star_rating;
 
 	$ch = curl_init();
 
@@ -75,14 +81,14 @@
 	// echo '</pre>';
 	?>
 
-	<?php if ( get_option( 'rcreviews_access_token' ) == '' ): ?>
+	<?php if ( get_option( 'rcreviews_access_token' ) == '' ) : ?>
 		<p class="rcreviews-error">Please check if client credentials are correct in the settings page.</p>
-	<?php elseif ( get_option( 'rcreviews_agency_id' ) == '' ): ?>
+	<?php elseif ( get_option( 'rcreviews_agency_id' ) == '' ) : ?>
 		<p class="rcreviews-error">Please enter the agency ID in the settings page.</p>
-	<?php elseif ( isset( $data['totalCount'] ) && empty( $data['totalCount'] ) ): ?>
+	<?php elseif ( isset( $data['totalCount'] ) && empty( $data['totalCount'] ) ) : ?>
 		<p class="rcreviews-error">No reviews found either due to listing is empty or incorrect agency ID.</p>
-	<?php else: ?>
-		<p class="rcreviews-total-posts">Total Existing Posts: <span class="rcreviews-posts"><?php echo $total_posts; ?></span></p>
+	<?php else : ?>
+		<p class="rcreviews-total-posts">Total Existing Posts from REA: <span class="rcreviews-posts"><?php echo $total_posts; ?></span></p>
 		<p class="rcreviews-total-reviews">Total Reviews Found: <span class="rcreviews-reviews"><?php echo $data['totalCount']; ?></span></p>
 		<p class="rcreviews-processed-wrapper d-none">Total Processed Items: <span class="rcreviews-processed">0</span>/<span class="rcreviews-total"><?php echo $data['totalCount']; ?></span></p>
 		<div class="rcreviews-progress-wrapper d-none"><progress id="rcreviews-progress" value="0" max="<?php echo ceil( $data['totalCount'] / 10 ); ?>"></progress></div>
