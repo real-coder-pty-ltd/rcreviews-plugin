@@ -18,30 +18,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
     truncateContent();
 
-    document.querySelector('.rcreviews--btn').addEventListener('click', function() {
-        document.querySelectorAll('.rcreviews--hidden-review').forEach(function(el) {
-            el.classList.toggle('d-none');
+    if ( document.querySelector('.rcreviews--btn') ){
+        document.querySelector('.rcreviews--btn').addEventListener('click', function() {
+            document.querySelectorAll('.rcreviews--hidden-review').forEach(function(el) {
+                el.classList.toggle('d-none');
+            });
+    
+            truncateContent();
+    
+            var label = document.querySelector('.rcreviews--label');
+            var count = document.querySelector('.rcreviews--count');
+            label.classList.toggle('active');
+            count.classList.toggle('d-none');
+    
+            if (label.classList.contains('active')) {
+                label.textContent = 'Show less';
+            } else {
+                label.textContent = 'Show';
+            }
         });
-
-        truncateContent();
-
-        var label = document.querySelector('.rcreviews--label');
-        var count = document.querySelector('.rcreviews--count');
-        label.classList.toggle('active');
-        count.classList.toggle('d-none');
-
-        if (label.classList.contains('active')) {
-            label.textContent = 'Show less';
-        } else {
-            label.textContent = 'Show';
-        }
-    });
+    }
 
     document.addEventListener('click', function(e) {
         if (e.target.matches('.rcreviews--read-more')) {
             e.target.parentElement.previousElementSibling.classList.remove('rcreviews--truncate');
             e.target.parentElement.remove();
-            console.log('click');
         }
     });
 });
