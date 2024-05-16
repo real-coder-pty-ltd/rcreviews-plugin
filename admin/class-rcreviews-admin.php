@@ -1041,28 +1041,33 @@ class rcreviews_admin {
 		// Set default values for the attributes
 		$atts = shortcode_atts(
 			array(
-				'max_reviews'         => -1,
-				'shown_reviews'       => 3,
-				'min_stars'           => 5,
-				'agent_id'            => '',
-				'agent_name'          => '',
-				'view'                => 'list',
-				'class_section'       => '',
-				'class_container'     => 'container',
-				'class_row'           => 'row',
-				'class_article'       => 'col-12 mb-3',
-				'class_card'          => 'bg-light rounded p-3',
-				'class_inner_row'     => 'row align-items-center justify-content-between',
-				'class_rating'        => 'col d-flex align-items-center',
-				'class_rating_stars'  => 'd-flex align-items-center',
-				'class_rating_number' => 'ps-1',
-				'class_badge'         => 'col text-end',
-				'class_title'         => '',
-				'class_date'          => '',
-				'class_content'       => 'mt-2',
-				'class_btn_wrapper'   => 'd-flex justify-content-center',
-				'class_btn'           => 'btn btn-outline-dark fw-semibold py-3 px-4',
-				'class_no_results'    => '',
+				'max_reviews'             => -1,
+				'shown_reviews'           => 3,
+				'min_stars'               => 5,
+				'agent_id'                => '',
+				'agent_name'              => '',
+				'view'                    => 'list',
+				'listing_type'            => 'agent',
+				'class_section'           => '',
+				'class_container'         => 'container',
+				'class_row'               => 'row',
+				'class_article'           => 'col-12 mb-3',
+				'class_card'              => 'bg-light rounded p-3',
+				'class_inner_row'         => 'row align-items-center justify-content-between',
+				'class_rating'            => 'col d-flex align-items-center',
+				'class_rating_stars'      => 'd-flex align-items-center',
+				'class_rating_number'     => 'ps-1',
+				'class_badge'             => 'col text-end',
+				'class_title'             => '',
+				'class_date'              => '',
+				'class_content'           => 'mt-2',
+				'class_agent'             => 'mt-3 d-flex align-items-center',
+				'class_agent_img-wrapper' => 'rounded-circle overflow-hidden me-1',
+				'class_agent_img'         => '',
+				'class_agent_name'        => '',
+				'class_btn_wrapper'       => 'd-flex justify-content-center',
+				'class_btn'               => 'btn btn-outline-dark fw-semibold py-3 px-4',
+				'class_no_results'        => '',
 			),
 			$atts,
 			'rcreviews'
@@ -1144,9 +1149,10 @@ class rcreviews_admin {
 				return '';
 			}
 		}
+
 		if ( $query->have_posts() ) {
 
-			$output .= '<section class="rcreviews--section' . rcreviews_check_class( $atts['class_section'], $atts['view'] ) . '">';
+			$output .= '<section class="rcreviews--section' . rcreviews_check_class( $atts['class_section'], $atts['view'] ) . ' rcreviews--listing-type-' . $atts['listing_type'] . '">';
 			$output .= '<div class="rcreviews--container' . rcreviews_check_class( $atts['class_container'], $atts['view'] ) . '"> ';
 			$output .= '<div class="rcreviews--row' . rcreviews_check_class( $atts['class_row'], $atts['view'] ) . '">';
 
@@ -1171,6 +1177,42 @@ class rcreviews_admin {
 				$output .= '<div class="rcreviews--title' . rcreviews_check_class( $atts['class_title'], $atts['view'] ) . '"><strong>' . get_the_title() . '</strong></div>';
 				$output .= '<div class="rcreviews--date' . rcreviews_check_class( $atts['class_date'], $atts['view'] ) . '"><small>' . human_time_diff( get_the_time( 'U' ), current_time( 'timestamp' ) ) . ' ago</small></div>';
 				$output .= '<div class="rcreviews--content' . rcreviews_check_class( $atts['class_content'], $atts['view'] ) . '">' . get_the_content() . '</div>';
+
+				if ( 'agency' == $atts['listing_type'] ) {
+					$agent_name = '';
+					$agent_img  = '';
+
+					$output .= '<div class="rcreviews--agent' . rcreviews_check_class( $atts['class_agent'], $atts['view'] ) . '">';
+
+					$users = get_users(
+						array(
+							'role'           => 'author',
+							'search'         => '*' . get_post_meta( get_the_ID(), 'rcreview_agent_name', true ) . '*',
+							'search_columns' => array(
+								'display_name',
+							),
+						)
+					);
+
+					if ( ! empty( $users ) ) {
+						$user       = $users[0];
+						$agent_name = get_user_meta( $user->ID, 'first_name', true ) . ' ' . get_user_meta( $user->ID, 'last_name', true );
+						$agent_img  = get_field( 'static_profile_image', 'user_' . $user->ID )['sizes']['thumbnail'];
+
+					} else {
+						$agent_name = get_post_meta( get_the_ID(), 'rcreview_agent_name', true );
+					}
+
+					if ( $agent_img ) {
+						$output .= '<span class="rcreviews--agent-img-wrapper' . rcreviews_check_class( $atts['class_agent_img-wrapper'], $atts['view'] ) . '">';
+						$output .= '<img class="rcreviews--agent-img' . rcreviews_check_class( $atts['class_agent_img-wrapper'], $atts['view'] ) . '" src="' . $agent_img . '" width="24" width="24">';
+						$output .= '</span>';
+					}
+
+					$output .= '<span class="rcreviews--agent-name' . rcreviews_check_class( $atts['class_agent_name'], $atts['view'] ) . '">' . $agent_name . '</span>';
+					$output .= '</div>';
+				}
+
 				$output .= '</div>';
 				$output .= '</article>';
 			}

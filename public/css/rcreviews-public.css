@@ -12,6 +12,9 @@
     display: flex;
     justify-content: end;
 }
+.rcreviews--listing-type-agency .rcreviews--read-more-wrapper{
+    justify-content: start;
+}
 .rcreviews--read-more{
     color: #00639E;
     cursor: pointer;
