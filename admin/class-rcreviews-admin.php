@@ -163,7 +163,7 @@ class rcreviews_admin {
 		// Check post type if not existing
 
 		if ( ! post_type_exists( get_option( 'rcreviews_custom_post_type_slug' ) ) ) {
-			$post_type_slug = get_option( 'rcreviews_custom_post_type_slug' ) ?  : 'rcreviews';
+			$post_type_slug = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
 			$labels         = array(
 				'name'                  => _x( 'Reviews', 'Post Type General Name', 'text_domain' ),
 				'singular_name'         => _x( 'Review', 'Post Type Singular Name', 'text_domain' ),
@@ -220,7 +220,7 @@ class rcreviews_admin {
 
 	// Register Custom Taxonomies
 	function register_custom_taxonomies() {
-		$post_type_slug = get_option( 'rcreviews_custom_post_type_slug' ) ?  : 'rcreviews';
+		$post_type_slug = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
 
 		$labels_suburb = array(
 			'name'                       => _x( 'Suburbs', 'Taxonomy General Name', 'text_domain' ),
@@ -294,7 +294,7 @@ class rcreviews_admin {
 	function register_meta_boxes() {
 
 		function rcreviews_add_meta_boxes() {
-			$post_type_slug = get_option( 'rcreviews_custom_post_type_slug' ) ?  : 'rcreviews';
+			$post_type_slug = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
 
 			add_meta_box(
 				'rcreview_reviewer_rating',
@@ -371,7 +371,7 @@ class rcreviews_admin {
 		}
 
 		function save_post_rcreviews_meta_boxes( $post_id ) {
-			$post_type_slug = get_option( 'rcreviews_custom_post_type_slug' ) ?  : 'rcreviews';
+			$post_type_slug = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
 
 			if ( ! current_user_can( 'edit_post', $post_id ) ) {
 				return;
@@ -773,8 +773,8 @@ class rcreviews_admin {
 		if ( '' == get_option( 'rcreviews_current_post_type_slug' ) ) {
 			update_option( 'rcreviews_current_post_type_slug', 'rcreviews' );
 		}
-		
-		$post_type    = get_option( 'rcreviews_custom_post_type_slug' ) ?  : 'rcreviews';
+
+		$post_type = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
 
 		if ( get_option( 'rcreviews_current_post_type_slug' ) != get_option( 'rcreviews_custom_post_type_slug' ) ) {
 			update_option( 'rcreviews_prev_post_type_slug', get_option( 'rcreviews_current_post_type_slug' ) );
@@ -857,7 +857,7 @@ class rcreviews_admin {
 			$url          = $_POST['url'];
 			$item_counter = $_POST['item_counter'];
 			$access_token = get_option( 'rcreviews_access_token' );
-			$post_type    = get_option( 'rcreviews_custom_post_type_slug' ) ?  : 'rcreviews';
+			$post_type    = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
 
 			$ch = curl_init();
 
@@ -995,7 +995,7 @@ class rcreviews_admin {
 		add_action( 'wp_ajax_rcreviews_nopriv_process_reviews', 'rcreviews_process_reviews_ajax_handler' );
 
 		function rcreviews_empty_reviews_ajax_handler() {
-			$post_type = get_option( 'rcreviews_custom_post_type_slug' ) ?  : 'rcreviews';
+			$post_type = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
 
 			$args = array(
 				'post_type'      => $post_type,
@@ -1036,7 +1036,7 @@ class rcreviews_admin {
 		$output           = '';
 		$badge            = file_get_contents( plugin_dir_path( __FILE__ ) . '../assets/images/badge.svg' );
 		$class_visibility = ' shown-review';
-		$post_type        = get_option( 'rcreviews_custom_post_type_slug' ) ?  : 'rcreviews';
+		$post_type        = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
 
 		// Set default values for the attributes
 		$atts = shortcode_atts(
@@ -1207,7 +1207,6 @@ class rcreviews_admin {
 		$agency_id           = get_option( 'rcreviews_agency_id' );
 		$minimum_star_rating = get_option( 'rcreviews_minimum_star_rating' );
 		$numbers             = '';
-		$post_type           = get_option( 'rcreviews_custom_post_type_slug' ) ?  : 'rcreviews';
 
 		if ( $minimum_star_rating ) {
 			for ( $i = $minimum_star_rating; $i <= 5; $i++ ) {
@@ -1227,6 +1226,7 @@ class rcreviews_admin {
 
 		function rcreviews_cron_exec_feed( $url ) {
 			$access_token = get_option( 'rcreviews_access_token' );
+			$post_type    = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
 			$ch           = curl_init();
 
 			curl_setopt( $ch, CURLOPT_URL, $url );
