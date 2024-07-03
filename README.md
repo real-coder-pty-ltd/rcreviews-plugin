@@ -87,6 +87,7 @@ Review widget can be filtered by using the attributes below.
 * view
 * listing_type
 
+Please see usage of attributes below.
 * max_reviews (integer) - Set the total number of reviews listed in the widget.
 * shown_reviews (integer) - Set the number of shown reviews before the other reviews are hidden by collapse button.
 * min_stars (integer) - Set the minimum star rating of the reviews.
