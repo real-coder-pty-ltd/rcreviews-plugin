@@ -1,114 +1,120 @@
-=== Plugin Name ===
-Contributors: (this should be a list of wordpress.org userid's)
-Donate link: https://realcoder.com.au/
-Tags: comments, spam
-Requires at least: 3.0.1
-Tested up to: 3.4
-Stable tag: 4.3
-License: GPLv2 or later
-License URI: http://www.gnu.org/licenses/gpl-2.0.html
+# RC Reviews Plugin
 
-Here is a short description of the plugin.  This should be no more than 150 characters.  No markup here.
+#### Prerequisite:
+The following credentials are needed in order to use the plugin.
+* clientID
+* clientSecret
+* agencyID
 
-== Description ==
+---
 
-This is the long description.  No limit, and you can use Markdown (as well as in the following sections).
+#### Installation:
+Install the plugin via composer.
 
-For backwards compatibility, if this section is missing, the full length of the short description will be used, and
-Markdown parsed.
+    composer require mattneal/rcreviews-plugin
 
-A few notes about the sections above:
+---
 
-*   "Contributors" is a comma separated list of wp.org/wp-plugins.org usernames
-*   "Tags" is a comma separated list of tags that apply to the plugin
-*   "Requires at least" is the lowest version that the plugin will work on
-*   "Tested up to" is the highest version that you've *successfully used to test the plugin*. Note that it might work on
-higher versions... this is just the highest one you've verified.
-*   Stable tag should indicate the Subversion "tag" of the latest stable version, or "trunk," if you use `/trunk/` for
-stable.
+#### Setup:
+There are two ways to setup the credentials:
+* Add the credentials manually to the plugin settings on backend.
+* Add as environment variables to the .env file.
 
-    Note that the `readme.txt` of the stable tag is the one that is considered the defining one for the plugin, so
-if the `/trunk/readme.txt` file says that the stable tag is `4.3`, then it is `/tags/4.3/readme.txt` that'll be used
-for displaying information about the plugin.  In this situation, the only thing considered from the trunk `readme.txt`
-is the stable tag pointer.  Thus, if you develop in trunk, you can update the trunk `readme.txt` to reflect changes in
-your in-development version, without having that information incorrectly disclosed about the current stable version
-that lacks those changes -- as long as the trunk's `readme.txt` points to the correct stable tag.
+##### Setup: Add via Plugin Settings
+Please see steps below in order to set the credentials.
+* Access the admin dashboard.
+* On the sidebar menu, navigate to RC Reviews > Settings.
+* Set the Client ID, Client Secret and Agent ID.
+* Click the Save Changes button in order to generate the Access Token.
+* Connection Status will display as Success if the credentials are correct.
 
-    If no stable tag is provided, it is assumed that trunk is stable, but you should specify "trunk" if that's where
-you put the stable version, in order to eliminate any doubt.
+##### Setup: Add as Environment Variables
+We strongly advise to add the credentials to the .env file.  Add the following environment variables to the .env file.
 
-== Installation ==
+    REA_CLIENT_ID
+    REA_CLIENT_SECRET
+    REA_AGENCY_ID
 
-This section describes how to install the plugin and get it working.
+Add the following configs to the application.php file.
 
-e.g.
+    Config::define( 'REA_CLIENT_ID', env( 'REA_CLIENT_ID' ) );
+    Config::define( 'REA_CLIENT_SECRET', env( 'REA_CLIENT_SECRET' ) );
+    Config::define( 'REA_AGENCY_ID', env( 'REA_AGENCY_ID' ) );
 
-1. Upload `rcreviews.php` to the `/wp-content/plugins/` directory
-1. Activate the plugin through the 'Plugins' menu in WordPress
-1. Place `<?php do_action('plugin_name_hook'); ?>` in your templates
+##### Setup: Custom Post Type Slug
+The default custom post type slug used in the plugin is `rcreviews`. However, there are instances where you need to merge existing reviews from another post type, please steps below.
 
-== Frequently Asked Questions ==
+There are two ways to configure the custom post type slug.
+* Set the slug to the plugin settings on backend under Custom Post Type Slug field.
+* Set as environment variables to the .env files, variable name used is `REA_POST_TYPE_SLUG`.
 
-= A question that someone might have =
+Note that steps are the same with configuring the credentials. Changing custom post type slug later on will result moving the reviews to the new post type and only the reviews pulled from REA are moved.
 
-An answer to that question.
+---
 
-= What about foo bar? =
+#### Fetching Reviews
+Please see steps below in order to sync reviews from REA to website.
+* Access the admin dashboard.
+* On the sidebar menu, navigate to RC Reviews.
+* Click the Sync Reviews button to start with the sync.
+* Note that while the reviews are being processed, please do not close the browser window.
+* Wait until the progress bar is complete.
+* On the sidebar menu, navigate to Reviews to view the list.
 
-Answer to foo bar dilemma.
+---
 
-== Screenshots ==
+#### Emptying Reviews
+There are instances where you accidentally merge the reviews to incorrect post type slug, in order to revert back the changes by deleting the synced reviews, please see steps below.
+* Access the admin dashboard.
+* On the sidebar menu, navigate to RC Reviews.
+* Click the Empty Reviews button to start with the deletion.
+* Note that while the reviews are being processed, please do not close the browser window.
+* Wait until the progress bar is complete.
 
-1. This screen shot description corresponds to screenshot-1.(png|jpg|jpeg|gif). Note that the screenshot is taken from
-the /assets directory or the directory that contains the stable readme.txt (tags or trunk). Screenshots in the /assets
-directory take precedence. For example, `/assets/screenshot-1.png` would win over `/tags/4.3/screenshot-1.png`
-(or jpg, jpeg, gif).
-2. This is the second screen shot
+Note that when emptying the reviews, only the ones pulled from REA are removed.
 
-== Changelog ==
+---
 
-= 1.0 =
-* A change since the previous version.
-* Another change.
+#### Displaying Reviews
+Reviews can be displayed using the [rcreviews] shortcode.
 
-= 0.5 =
-* List versions from most recent at top to oldest at bottom.
+Review widget can be filtered by using the attributes below.
+* max_reviews
+* shown_reviews
+* min_stars
+* agent_id
+* agent_name
+* view
+* listing_type
 
-== Upgrade Notice ==
+max_reviews (integer) - Set the total number of reviews listed in the widget.
+shown_reviews (integer) - Set the number of shown reviews before the other reviews are hidden by collapse button.
+min_stars (integer) - Set the minimum star rating of the reviews.
+agent_id (string) - Use to filter the reviews by agent ID (from REA), need to assign the agent ID to the agent in order to use.
+agent_name (string) - Use to filter the reviews by agent name (should match the name from REA)
+view (string) - Setting the value to `unstyled` will remove the existing classes from the elements.
+listing_type (agent, agency) - Setting the value to `agency` will add the agenct details.
 
-= 1.0 =
-Upgrade notices describe the reason a user should upgrade.  No more than 300 characters.
+Review widget can be styled and customized by using the class attributes below.
+* class_section
+* class_container
+* class_row
+* class_article
+* class_card
+* class_inner_row
+* class_rating
+* class_rating_stars
+* class_rating_number
+* class_badge
+* class_title
+* class_date
+* class_content
+* class_agent
+* class_agent_img-wrapper
+* class_agent_img
+* class_agent_name
+* class_bin_wrapper
+* class_btn
+* class_no_results
 
-= 0.5 =
-This version fixes a security related bug.  Upgrade immediately.
-
-== Arbitrary section ==
-
-You may provide arbitrary sections, in the same format as the ones above.  This may be of use for extremely complicated
-plugins where more information needs to be conveyed that doesn't fit into the categories of "description" or
-"installation."  Arbitrary sections will be shown below the built-in sections outlined above.
-
-== A brief Markdown Example ==
-
-Ordered list:
-
-1. Some feature
-1. Another feature
-1. Something else about the plugin
-
-Unordered list:
-
-* something
-* something else
-* third thing
-
-Here's a link to [WordPress](http://wordpress.org/ "Your favorite software") and one to [Markdown's Syntax Documentation][markdown syntax].
-Titles are optional, naturally.
-
-[markdown syntax]: http://daringfireball.net/projects/markdown/syntax
-            "Markdown is what the parser uses to process much of the readme file"
-
-Markdown uses email style notation for blockquotes and I've been told:
-> Asterisks for *emphasis*. Double it up  for **strong**.
-
-`<?php code(); // goes in backticks ?>`
+Default classes used is based on Bootstrap, setting the `view` attribute to `unstyled` will remove pre-added classes .
