@@ -118,3 +118,8 @@ Review widget can be styled and customized by using the class attributes below.
 * class_no_results
 
 Default classes used is based on Bootstrap, setting the `view` attribute to `unstyled` will remove pre-added classes .
+
+
+
+
+
