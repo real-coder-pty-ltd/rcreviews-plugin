@@ -87,13 +87,13 @@ Review widget can be filtered by using the attributes below.
 * view
 * listing_type
 
-max_reviews (integer) - Set the total number of reviews listed in the widget.
-shown_reviews (integer) - Set the number of shown reviews before the other reviews are hidden by collapse button.
-min_stars (integer) - Set the minimum star rating of the reviews.
-agent_id (string) - Use to filter the reviews by agent ID (from REA), need to assign the agent ID to the agent in order to use.
-agent_name (string) - Use to filter the reviews by agent name (should match the name from REA)
-view (string) - Setting the value to `unstyled` will remove the existing classes from the elements.
-listing_type (agent, agency) - Setting the value to `agency` will add the agenct details.
+* max_reviews (integer) - Set the total number of reviews listed in the widget.
+* shown_reviews (integer) - Set the number of shown reviews before the other reviews are hidden by collapse button.
+* min_stars (integer) - Set the minimum star rating of the reviews.
+* agent_id (string) - Use to filter the reviews by agent ID (from REA), need to assign the agent ID to the agent in order to use.
+* agent_name (string) - Use to filter the reviews by agent name (should match the name from REA)
+* view (string) - Setting the value to `unstyled` will remove the existing classes from the elements.
+* listing_type (agent, agency) - Setting the value to `agency` will add the agenct details.
 
 Review widget can be styled and customized by using the class attributes below.
 * class_section
@@ -118,8 +118,3 @@ Review widget can be styled and customized by using the class attributes below.
 * class_no_results
 
 Default classes used is based on Bootstrap, setting the `view` attribute to `unstyled` will remove pre-added classes .
-
-
-
-
-
