@@ -1,120 +1,38 @@
-# RC Reviews Plugin
-
-#### Prerequisite:
-The following credentials are needed in order to use the plugin.
-* clientID
-* clientSecret
-* agencyID
-
----
-
-#### Installation:
-Install the plugin via composer.
-
-    composer require mattneal/rcreviews-plugin
-
----
-
-#### Setup:
-There are two ways to setup the credentials:
-* Add the credentials manually to the plugin settings on backend.
-* Add as environment variables to the .env file.
-
-##### Setup: Add via Plugin Settings
-Please see steps below in order to set the credentials.
-* Access the admin dashboard.
-* On the sidebar menu, navigate to RC Reviews > Settings.
-* Set the Client ID, Client Secret and Agent ID.
-* Click the Save Changes button in order to generate the Access Token.
-* Connection Status will display as Success if the credentials are correct.
-
-##### Setup: Add as Environment Variables
-We strongly advise to add the credentials to the .env file.  Add the following environment variables to the .env file.
-
-    REA_CLIENT_ID
-    REA_CLIENT_SECRET
-    REA_AGENCY_ID
-
-Add the following configs to the application.php file.
-
-    Config::define( 'REA_CLIENT_ID', env( 'REA_CLIENT_ID' ) );
-    Config::define( 'REA_CLIENT_SECRET', env( 'REA_CLIENT_SECRET' ) );
-    Config::define( 'REA_AGENCY_ID', env( 'REA_AGENCY_ID' ) );
-
-##### Setup: Custom Post Type Slug
-The default custom post type slug used in the plugin is `rcreviews`. However, there are instances where you need to merge existing reviews from another post type, please steps below.
-
-There are two ways to configure the custom post type slug.
-* Set the slug to the plugin settings on backend under Custom Post Type Slug field.
-* Set as environment variables to the .env files, variable name used is `REA_POST_TYPE_SLUG`.
-
-Note that steps are the same with configuring the credentials. Changing custom post type slug later on will result moving the reviews to the new post type and only the reviews pulled from REA are moved.
-
----
-
-#### Fetching Reviews
-Please see steps below in order to sync reviews from REA to website.
-* Access the admin dashboard.
-* On the sidebar menu, navigate to RC Reviews.
-* Click the Sync Reviews button to start with the sync.
-* Note that while the reviews are being processed, please do not close the browser window.
-* Wait until the progress bar is complete.
-* On the sidebar menu, navigate to Reviews to view the list.
-
----
-
-#### Emptying Reviews
-There are instances where you accidentally merge the reviews to incorrect post type slug, in order to revert back the changes by deleting the synced reviews, please see steps below.
-* Access the admin dashboard.
-* On the sidebar menu, navigate to RC Reviews.
-* Click the Empty Reviews button to start with the deletion.
-* Note that while the reviews are being processed, please do not close the browser window.
-* Wait until the progress bar is complete.
-
-Note that when emptying the reviews, only the ones pulled from REA are removed.
-
----
-
-#### Displaying Reviews
-Reviews can be displayed using the [rcreviews] shortcode.
-
-Review widget can be filtered by using the attributes below.
-* max_reviews
-* shown_reviews
-* min_stars
-* agent_id
-* agent_name
-* view
-* listing_type
-
-max_reviews (integer) - Set the total number of reviews listed in the widget.
-shown_reviews (integer) - Set the number of shown reviews before the other reviews are hidden by collapse button.
-min_stars (integer) - Set the minimum star rating of the reviews.
-agent_id (string) - Use to filter the reviews by agent ID (from REA), need to assign the agent ID to the agent in order to use.
-agent_name (string) - Use to filter the reviews by agent name (should match the name from REA)
-view (string) - Setting the value to `unstyled` will remove the existing classes from the elements.
-listing_type (agent, agency) - Setting the value to `agency` will add the agenct details.
-
-Review widget can be styled and customized by using the class attributes below.
-* class_section
-* class_container
-* class_row
-* class_article
-* class_card
-* class_inner_row
-* class_rating
-* class_rating_stars
-* class_rating_number
-* class_badge
-* class_title
-* class_date
-* class_content
-* class_agent
-* class_agent_img-wrapper
-* class_agent_img
-* class_agent_name
-* class_bin_wrapper
-* class_btn
-* class_no_results
-
-Default classes used is based on Bootstrap, setting the `view` attribute to `unstyled` will remove pre-added classes .
+<h1 id="h1-rc-reviews-plugin"><a name="RC Reviews Plugin" class="reference-link"></a><span class="header-link octicon octicon-link"></span>RC Reviews Plugin</h1><h4 id="h4-prerequisite-"><a name="Prerequisite:" class="reference-link"></a><span class="header-link octicon octicon-link"></span>Prerequisite:</h4><p>The following credentials are needed in order to use the plugin.</p>
+<ul>
+<li>clientID</li><li>clientSecret</li><li>agencyID</li></ul>
+<hr>
+<h4 id="h4-installation-"><a name="Installation:" class="reference-link"></a><span class="header-link octicon octicon-link"></span>Installation:</h4><p>Install the plugin via composer.</p>
+<pre class="prettyprint linenums prettyprinted" style=""><ol class="linenums"><li class="L0"><code><span class="pln">composer </span><span class="kwd">require</span><span class="pln"> mattneal</span><span class="pun">/</span><span class="pln">rcreviews</span><span class="pun">-</span><span class="pln">plugin</span></code></li></ol></pre><hr>
+<h4 id="h4-setup-"><a name="Setup:" class="reference-link"></a><span class="header-link octicon octicon-link"></span>Setup:</h4><p>There are two ways to setup the credentials:</p>
+<ul>
+<li>Add the credentials manually to the plugin settings on backend.</li><li>Add as environment variables to the .env file.</li></ul>
+<h5 id="h5-setup-add-via-plugin-settings"><a name="Setup: Add via Plugin Settings" class="reference-link"></a><span class="header-link octicon octicon-link"></span>Setup: Add via Plugin Settings</h5><p>Please see steps below in order to set the credentials.</p>
+<ul>
+<li>Access the admin dashboard.</li><li>On the sidebar menu, navigate to RC Reviews &gt; Settings.</li><li>Set the Client ID, Client Secret and Agent ID.</li><li>Click the Save Changes button in order to generate the Access Token.</li><li>Connection Status will display as Success if the credentials are correct.</li></ul>
+<h5 id="h5-setup-add-as-environment-variables"><a name="Setup: Add as Environment Variables" class="reference-link"></a><span class="header-link octicon octicon-link"></span>Setup: Add as Environment Variables</h5><p>We strongly advise to add the credentials to the .env file.  Add the following environment variables to the .env file.</p>
+<pre class="prettyprint linenums prettyprinted" style=""><ol class="linenums"><li class="L0"><code><span class="pln">REA_CLIENT_ID</span></code></li><li class="L1"><code><span class="pln">REA_CLIENT_SECRET</span></code></li><li class="L2"><code><span class="pln">REA_AGENCY_ID</span></code></li></ol></pre><p>Add the following configs to the application.php file.</p>
+<pre class="prettyprint linenums prettyprinted" style=""><ol class="linenums"><li class="L0"><code><span class="typ">Config</span><span class="pun">::</span><span class="pln">define</span><span class="pun">(</span><span class="pln"> </span><span class="str">'REA_CLIENT_ID'</span><span class="pun">,</span><span class="pln"> env</span><span class="pun">(</span><span class="pln"> </span><span class="str">'REA_CLIENT_ID'</span><span class="pln"> </span><span class="pun">)</span><span class="pln"> </span><span class="pun">);</span></code></li><li class="L1"><code><span class="typ">Config</span><span class="pun">::</span><span class="pln">define</span><span class="pun">(</span><span class="pln"> </span><span class="str">'REA_CLIENT_SECRET'</span><span class="pun">,</span><span class="pln"> env</span><span class="pun">(</span><span class="pln"> </span><span class="str">'REA_CLIENT_SECRET'</span><span class="pln"> </span><span class="pun">)</span><span class="pln"> </span><span class="pun">);</span></code></li><li class="L2"><code><span class="typ">Config</span><span class="pun">::</span><span class="pln">define</span><span class="pun">(</span><span class="pln"> </span><span class="str">'REA_AGENCY_ID'</span><span class="pun">,</span><span class="pln"> env</span><span class="pun">(</span><span class="pln"> </span><span class="str">'REA_AGENCY_ID'</span><span class="pln"> </span><span class="pun">)</span><span class="pln"> </span><span class="pun">);</span></code></li></ol></pre><h5 id="h5-setup-custom-post-type-slug"><a name="Setup: Custom Post Type Slug" class="reference-link"></a><span class="header-link octicon octicon-link"></span>Setup: Custom Post Type Slug</h5><p>The default custom post type slug used in the plugin is <code>rcreviews</code>. However, there are instances where you need to merge existing reviews from another post type, please steps below.</p>
+<p>There are two ways to configure the custom post type slug.</p>
+<ul>
+<li>Set the slug to the plugin settings on backend under Custom Post Type Slug field.</li><li>Set as environment variables to the .env files, variable name used is <code>REA_POST_TYPE_SLUG</code>.</li></ul>
+<p>Note that steps are the same with configuring the credentials. Changing custom post type slug later on will result moving the reviews to the new post type and only the reviews pulled from REA are moved.</p>
+<hr>
+<h4 id="h4-fetching-reviews"><a name="Fetching Reviews" class="reference-link"></a><span class="header-link octicon octicon-link"></span>Fetching Reviews</h4><p>Please see steps below in order to sync reviews from REA to website.</p>
+<ul>
+<li>Access the admin dashboard.</li><li>On the sidebar menu, navigate to RC Reviews.</li><li>Click the Sync Reviews button to start with the sync.</li><li>Note that while the reviews are being processed, please do not close the browser window.</li><li>Wait until the progress bar is complete.</li><li>On the sidebar menu, navigate to Reviews to view the list.</li></ul>
+<hr>
+<h4 id="h4-emptying-reviews"><a name="Emptying Reviews" class="reference-link"></a><span class="header-link octicon octicon-link"></span>Emptying Reviews</h4><p>There are instances where you accidentally merge the reviews to incorrect post type slug, in order to revert back the changes by deleting the synced reviews, please see steps below.</p>
+<ul>
+<li>Access the admin dashboard.</li><li>On the sidebar menu, navigate to RC Reviews.</li><li>Click the Empty Reviews button to start with the deletion.</li><li>Note that while the reviews are being processed, please do not close the browser window.</li><li>Wait until the progress bar is complete.</li></ul>
+<p>Note that when emptying the reviews, only the ones pulled from REA are removed.</p>
+<hr>
+<h4 id="h4-displaying-reviews"><a name="Displaying Reviews" class="reference-link"></a><span class="header-link octicon octicon-link"></span>Displaying Reviews</h4><p>Reviews can be displayed using the [rcreviews] shortcode.</p>
+<p>Review widget can be filtered by using the attributes below.</p>
+<ul>
+<li>max_reviews</li><li>shown_reviews</li><li>min_stars</li><li>agent_id</li><li>agent_name</li><li>view</li><li>listing_type</li></ul>
+<p>max_reviews (integer) - Set the total number of reviews listed in the widget.<br>shown_reviews (integer) - Set the number of shown reviews before the other reviews are hidden by collapse button.<br>min_stars (integer) - Set the minimum star rating of the reviews.<br>agent_id (string) - Use to filter the reviews by agent ID (from REA), need to assign the agent ID to the agent in order to use.<br>agent_name (string) - Use to filter the reviews by agent name (should match the name from REA)<br>view (string) - Setting the value to <code>unstyled</code> will remove the existing classes from the elements.<br>listing_type (agent, agency) - Setting the value to <code>agency</code> will add the agenct details.</p>
+<p>Review widget can be styled and customized by using the class attributes below.</p>
+<ul>
+<li>class_section</li><li>class_container</li><li>class_row</li><li>class_article</li><li>class_card</li><li>class_inner_row</li><li>class_rating</li><li>class_rating_stars</li><li>class_rating_number</li><li>class_badge</li><li>class_title</li><li>class_date</li><li>class_content</li><li>class_agent</li><li>class_agent_img-wrapper</li><li>class_agent_img</li><li>class_agent_name</li><li>class_bin_wrapper</li><li>class_btn</li><li>class_no_results</li></ul>
+<p>Default classes used is based on Bootstrap, setting the <code>view</code> attribute to <code>unstyled</code> will remove pre-added classes .</p>
