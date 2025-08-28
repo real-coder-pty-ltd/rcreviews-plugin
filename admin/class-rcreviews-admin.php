@@ -1067,6 +1067,7 @@ class rcreviews_admin {
 				'agency_name'             => '',
 				'agent_id'                => '',
 				'agent_name'              => '',
+				'role'              	  => '',
 				'view'                    => 'list',
 				'listing_type'            => 'agent',
 				'class_section'           => '',
@@ -1102,6 +1103,17 @@ class rcreviews_admin {
 				'compare' => '>=',
 			),
 		);
+
+		if ( ! empty( $atts['role'] ) ) {
+			$meta_query = array(
+				'relation' => 'AND',
+				array(
+					'key'     => 'rcreview_reviewer_role',
+					'value'   => $atts['role'],
+					'compare' => '==',
+				),
+			);
+		}
 
 		if ( ! empty( $atts['agency_id'] ) && ! empty( $atts['agency_name'] ) ) {
 			$agency_names  = explode( ',', $atts['agency_name'] );
