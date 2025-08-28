@@ -9,15 +9,15 @@
  * that starts the plugin.
  *
  * @link              https://realcoder.com.au
- * @since             1.0.0
+ * @since             1.1.0
  * @package           Rcreviews
  *
  * @wordpress-plugin
- * Plugin Name:       Sync Reviews from realestate.com.au
- * Plugin URI:        https://stafflink.com.au
+ * Plugin Name:       Sync Reviews from REA (realestate.com.au)
+ * Plugin URI:        https://realcoder.com.au/
  * Description:       Sync your realestate.com.au reviews to your real estate website via the REA API.
  * Version:           1.0.0
- * Author:            Julius Genetia
+ * Author:            Real Coder
  * Author URI:        https://realcoder.com.au/
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt

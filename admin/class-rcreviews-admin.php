@@ -1,149 +1,98 @@
 <?php
-
 /**
- * The admin-specific functionality of the plugin.
- *
- * @link       https://realcoder.com.au
- * @since      1.0.0
- *
- * @package    Rcreviews
- * @subpackage Rcreviews/admin
- */
-
-/**
- * The admin-specific functionality of the plugin.
- *
- * Defines the plugin name, version, and two examples hooks for how to
- * enqueue the admin-specific stylesheet and JavaScript.
- *
- * @package    Rcreviews
- * @subpackage Rcreviews/admin
- * @author     Julius Genetia <julius@stafflink.com.au>
+ * Admin Specific Class for the plugin.
  */
 class rcreviews_admin {
 
-	/**
-	 * The ID of this plugin.
-	 *
-	 * @since    1.0.0
-	 * @access   private
-	 * @var      string    $plugin_name    The ID of this plugin.
-	 */
 	private $plugin_name;
 
-	/**
-	 * The version of this plugin.
-	 *
-	 * @since    1.0.0
-	 * @access   private
-	 * @var      string    $version    The current version of this plugin.
-	 */
 	private $version;
 
-	/**
-	 * Initialize the class and set its properties.
-	 *
-	 * @since    1.0.0
-	 * @param      string $plugin_name       The name of this plugin.
-	 * @param      string $version    The version of this plugin.
-	 */
 	public function __construct( $plugin_name, $version ) {
 
 		$this->plugin_name = $plugin_name;
 		$this->version     = $version;
 
-		// Add the admin menu
-		add_action( 'admin_menu', array( $this, 'display_plugin_admin_menu' ), 9 );
+		$actions = [
+			'admin_menu' => ['display_plugin_admin_menu'],
+			'admin_init' => [
+				'register_and_build_fields',
+				'rcreviews_ajax_handler_function',
+			],
+			'init'       => [
+				'register_custom_post_types',
+				'register_custom_taxonomies',
+				'rcreviews_move_posts_from_previous_post_type',
+				'rcreviews_cron_refresh',
+			],
+			'rcreviews_cron_hook' => ['rcreviews_cron_exec'],
+			'update_option_rcreviews_sync_interval' => ['rcreviews_cron_refresh'],
+		];
 
-		// Register and build settings fields
-		add_action( 'admin_init', array( $this, 'register_and_build_fields' ) );
+		foreach ( $actions as $action => $functions ) {
+			foreach ( $functions as $function ) {
+				add_action( $action, [$this, $function] );
+			}
+		}
 
-		// Register default values for settings field
-		add_action( 'admin_init', array( $this, 'register_default_values_for_settings_field' ) );
-
-		// Register custom post types
-		add_action( 'init', array( $this, 'register_custom_post_types' ) );
-
-		// Register custom taxonomies
-		add_action( 'init', array( $this, 'register_custom_taxonomies' ) );
-
-		// Register meta boxes
-		add_action( 'init', array( $this, 'register_meta_boxes' ) );
-
-		// Move posts from previous custom post type to new custom post type
-		add_action( 'init', array( $this, 'rcreviews_move_posts_from_previous_post_type' ) );
-
-		// Ajax handler function
-		add_action( 'admin_init', array( $this, 'rcreviews_ajax_handler_function' ) );
-
-		// Add shortcode
 		add_shortcode( 'rcreviews', array( $this, 'rcreviews_shortcode_function' ) );
-
-		// Add cron job
-		add_action( 'rcreviews_cron_hook', array( $this, 'rcreviews_cron_exec' ) );
-
-		// Add cron schedules
 		add_filter( 'cron_schedules', array( $this, 'rcreviews_cron_schedules' ) );
-
-		// Update cron schedules
-		add_action( 'update_option_rcreviews_sync_interval', array( $this, 'rcreviews_cron_refresh' ) );
 	}
 
-	/**
-	 * Register the stylesheets for the admin area.
-	 *
-	 * @since    1.0.0
-	 */
-	public function enqueue_styles() {
+	public function refresh_access_token_if_needed() {
+    
+		$existing_token      = get_option( 'rcreviews_access_token' );
+		$existing_expires_at = (int) get_option( 'rcreviews_access_token_expires' );
+	
+		if ( ! empty( $existing_token ) && time() < $existing_expires_at ) {
+			return;
+		}
+	
+		$url           = 'https://api.realestate.com.au/oauth/token';
+		$client_id     = get_option( 'rcreviews_client_id' );
+		$client_secret = get_option( 'rcreviews_client_secret' );
+	
+		$args = [
+			'method'  => 'POST',
+			'headers' => [
+				'Authorization' => 'Basic ' . base64_encode( "{$client_id}:{$client_secret}" ),
+			],
+			'body'    => [ 'grant_type' => 'client_credentials' ],
+			'timeout' => 15,
+		];
+	
+		$response = wp_remote_post( $url, $args );
+	
+		if ( is_wp_error( $response ) ) {
+			update_option( 'rcreviews_access_token', '' );
+			update_option( 'rcreviews_access_token_expires', 0 );
+			return;
+		}
+	
+		$json_body = wp_remote_retrieve_body( $response );
+		$data      = json_decode( $json_body, true );
+	
+		if ( isset( $data['access_token'] ) ) {
+			update_option( 'rcreviews_access_token', $data['access_token'] );
+	
+			$expires_in = isset( $data['expires_in'] ) ? (int) $data['expires_in'] : 3600;
+			update_option( 'rcreviews_access_token_expires', time() + $expires_in );
+		} else {
+			update_option( 'rcreviews_access_token', '' );
+			update_option( 'rcreviews_access_token_expires', 0 );
+		}
+	}
 
-		/**
-		 * This function is provided for demonstration purposes only.
-		 *
-		 * An instance of this class should be passed to the run() function
-		 * defined in Rcreviews_Loader as all of the hooks are defined
-		 * in that particular class.
-		 *
-		 * The Rcreviews_Loader will then create the relationship
-		 * between the defined hooks and the functions defined in this
-		 * class.
-		 */
-
+	public function enqueue_styles(): void
+	{
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/rcreviews-admin.css', array(), $this->version, 'all' );
 	}
 
-	/**
-	 * Register the JavaScript for the admin area.
-	 *
-	 * @since    1.0.0
-	 */
-	public function enqueue_scripts() {
-
-		/**
-		 * This function is provided for demonstration purposes only.
-		 *
-		 * An instance of this class should be passed to the run() function
-		 * defined in Rcreviews_Loader as all of the hooks are defined
-		 * in that particular class.
-		 *
-		 * The Rcreviews_Loader will then create the relationship
-		 * between the defined hooks and the functions defined in this
-		 * class.
-		 */
-
+	public function enqueue_scripts(): void
+	{
 		$agency_id = get_option( 'rcreviews_agency_id' );
-
-		$minimum_star_rating = get_option( 'rcreviews_minimum_star_rating' );
-		$numbers             = '';
-
-		if ( $minimum_star_rating ) {
-			for ( $i = $minimum_star_rating; $i <= 5; $i++ ) {
-				$numbers .= $i . ',';
-			}
-			$minimum_star_rating = '&ratings=' . rtrim( $numbers, ',' );
-		} else {
-			$minimum_star_rating = '';
-		}
-
+		$minimum_star_rating = $this->build_rating_param( get_option( 'rcreviews_minimum_star_rating' ) );
+		
 		$url_first = 'https://api.realestate.com.au/customer-profile/v1/ratings-reviews/agencies/' . $agency_id . '?since=2010-09-06T12%3A27%3A00.1Z&order=DESC' . $minimum_star_rating;
 
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/rcreviews-admin.js', array( 'jquery' ), $this->version, false );
@@ -156,11 +105,11 @@ class rcreviews_admin {
 				'url_first' => $url_first,
 			)
 		);
+		
 	}
 
-	// Register Custom Post Types
-	public function register_custom_post_types() {
-		// Check post type if not existing
+	public function register_custom_post_types(): void
+	{
 
 		if ( ! post_type_exists( get_option( 'rcreviews_custom_post_type_slug' ) ) ) {
 			$post_type_slug = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
@@ -218,8 +167,8 @@ class rcreviews_admin {
 		}
 	}
 
-	// Register Custom Taxonomies
-	function register_custom_taxonomies() {
+	function register_custom_taxonomies()
+	{
 		$post_type_slug = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
 
 		$labels_suburb = array(
@@ -276,6 +225,7 @@ class rcreviews_admin {
 			'items_list'                 => __( 'States list', 'text_domain' ),
 			'items_list_navigation'      => __( 'States list navigation', 'text_domain' ),
 		);
+
 		$args_state    = array(
 			'labels'            => $labels_state,
 			'hierarchical'      => false,
@@ -286,126 +236,151 @@ class rcreviews_admin {
 			'show_tagcloud'     => true,
 			'rewrite'           => false,
 		);
-		register_taxonomy( 'rcreviews_suburb', array( $post_type_slug ), $args_suburb );
-		register_taxonomy( 'rcreviews_state', array( $post_type_slug ), $args_state );
-	}
 
-	// Register Meta Boxes
-	function register_meta_boxes() {
+		$labels_agency_id  = array(
+			'name'                       => _x( 'Agency ID', 'Taxonomy General Name', 'text_domain' ),
+			'singular_name'              => _x( 'Agency ID', 'Taxonomy Singular Name', 'text_domain' ),
+			'menu_name'                  => __( 'Agency IDs', 'text_domain' ),
+			'all_items'                  => __( 'Agency IDs', 'text_domain' ),
+			'parent_item'                => __( 'Parent Agency ID', 'text_domain' ),
+			'parent_item_colon'          => __( 'Parent Agency ID:', 'text_domain' ),
+			'new_item_name'              => __( 'New Agency ID', 'text_domain' ),
+			'add_new_item'               => __( 'Add New Agency ID', 'text_domain' ),
+			'edit_item'                  => __( 'Edit Agency ID', 'text_domain' ),
+			'update_item'                => __( 'Update Agency ID', 'text_domain' ),
+			'view_item'                  => __( 'View Agency ID', 'text_domain' ),
+			'separate_items_with_commas' => __( 'Separate states with commas', 'text_domain' ),
+			'add_or_remove_items'        => __( 'Add or remove states', 'text_domain' ),
+			'choose_from_most_used'      => __( 'Choose from the most used', 'text_domain' ),
+			'popular_items'              => __( 'Popular Agency IDs', 'text_domain' ),
+			'search_items'               => __( 'Search Agency IDs', 'text_domain' ),
+			'not_found'                  => __( 'Not Found', 'text_domain' ),
+			'no_terms'                   => __( 'No states', 'text_domain' ),
+			'items_list'                 => __( 'Agency IDs list', 'text_domain' ),
+			'items_list_navigation'      => __( 'Agency IDs list navigation', 'text_domain' ),
+		);
 
-		function rcreviews_add_meta_boxes() {
-			$post_type_slug = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
+		$args_agency_id    = array(
+			'labels'            => $labels_agency_id,
+			'hierarchical'      => false,
+			'public'            => true,
+			'show_ui'           => true,
+			'show_admin_column' => true,
+			'show_in_nav_menus' => false,
+			'show_tagcloud'     => true,
+			'rewrite'           => false,
+		);
 
-			add_meta_box(
-				'rcreview_reviewer_rating',
-				'Review Rating',
-				'rcreviews_reviewer_rating_callback',
-				$post_type_slug
-			);
-			add_meta_box(
-				'rcreview_reviewer_role',
-				'Reviewer Role',
-				'rcreviews_reviewer_role_callback',
-				$post_type_slug
-			);
-			add_meta_box(
-				'rcreview_reviewer_name',
-				'Reviewer Name',
-				'rcreviews_reviewer_name_callback',
-				$post_type_slug
-			);
-			add_meta_box(
-				'rcreview_agent_id',
-				'Agent ID',
-				'rcreviews_agent_id_callback',
-				$post_type_slug
-			);
-			add_meta_box(
-				'rcreview_agent_name',
-				'Agent Name',
-				'rcreviews_agent_name_callback',
-				$post_type_slug
-			);
-			add_meta_box(
-				'rcreview_listing_id',
-				'Listing ID',
-				'rcreviews_listing_id_callback',
-				$post_type_slug
-			);
-			add_meta_box(
-				'rcreview_unique_id',
-				'Unique ID',
-				'rcreviews_unique_id_callback',
-				$post_type_slug
-			);
-		}
-		add_action( 'add_meta_boxes', 'rcreviews_add_meta_boxes' );
 
-		function rcreviews_reviewer_rating_callback( $post ) {
-			$value = esc_html( get_post_meta( $post->ID, 'rcreview_reviewer_rating', true ) );
-			echo '<input type="text" name="rcreview_reviewer_rating" id="rcreview_reviewer_rating" value="' . $value . '">';
-		}
-		function rcreviews_reviewer_role_callback( $post ) {
-			$value = esc_html( get_post_meta( $post->ID, 'rcreview_reviewer_role', true ) );
-			echo '<input type="text" name="rcreview_reviewer_role" id="rcreview_reviewer_role" value="' . $value . '">';
-		}
-		function rcreviews_reviewer_name_callback( $post ) {
-			$value = esc_html( get_post_meta( $post->ID, 'rcreview_reviewer_name', true ) );
-			echo '<input type="text" name="rcreview_reviewer_name" id="rcreview_reviewer_name" value="' . $value . '">';
-		}
-		function rcreviews_agent_id_callback( $post ) {
-			$value = esc_html( get_post_meta( $post->ID, 'rcreview_agent_id', true ) );
-			echo '<input type="text" name="rcreview_agent_id" id="rcreview_agent_id" value="' . $value . '">';
-		}
-		function rcreviews_agent_name_callback( $post ) {
-			$value = esc_html( get_post_meta( $post->ID, 'rcreview_agent_name', true ) );
-			echo '<input type="text" name="rcreview_agent_name" id="rcreview_agent_name" value="' . $value . '">';
-		}
-		function rcreviews_listing_id_callback( $post ) {
-			$value = esc_html( get_post_meta( $post->ID, 'rcreview_listing_id', true ) );
-			echo '<input type="text" name="rcreview_listing_id" id="rcreview_listing_id" value="' . $value . '">';
-		}
-		function rcreviews_unique_id_callback( $post ) {
-			$value = esc_html( get_post_meta( $post->ID, 'rcreview_unique_id', true ) );
-			echo '<input type="text" name="rcreview_unique_id" id="rcreview_unique_id" value="' . $value . '">';
-		}
+		$labels_agent_id  = array(
+			'name'                       => _x( 'Agent ID', 'Taxonomy General Name', 'text_domain' ),
+			'singular_name'              => _x( 'Agent ID', 'Taxonomy Singular Name', 'text_domain' ),
+			'menu_name'                  => __( 'Agent IDs', 'text_domain' ),
+			'all_items'                  => __( 'Agent IDs', 'text_domain' ),
+			'parent_item'                => __( 'Parent Agent ID', 'text_domain' ),
+			'parent_item_colon'          => __( 'Parent Agent ID:', 'text_domain' ),
+			'new_item_name'              => __( 'New Agent ID', 'text_domain' ),
+			'add_new_item'               => __( 'Add New Agent ID', 'text_domain' ),
+			'edit_item'                  => __( 'Edit Agent ID', 'text_domain' ),
+			'update_item'                => __( 'Update Agent ID', 'text_domain' ),
+			'view_item'                  => __( 'View Agent ID', 'text_domain' ),
+			'separate_items_with_commas' => __( 'Separate states with commas', 'text_domain' ),
+			'add_or_remove_items'        => __( 'Add or remove states', 'text_domain' ),
+			'choose_from_most_used'      => __( 'Choose from the most used', 'text_domain' ),
+			'popular_items'              => __( 'Popular Agent IDs', 'text_domain' ),
+			'search_items'               => __( 'Search Agent IDs', 'text_domain' ),
+			'not_found'                  => __( 'Not Found', 'text_domain' ),
+			'no_terms'                   => __( 'No states', 'text_domain' ),
+			'items_list'                 => __( 'Agent IDs list', 'text_domain' ),
+			'items_list_navigation'      => __( 'Agent IDs list navigation', 'text_domain' ),
+		);
 
-		function save_post_rcreviews_meta_boxes( $post_id ) {
-			$post_type_slug = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
+		$args_agent_id    = array(
+			'labels'            => $labels_agent_id,
+			'hierarchical'      => false,
+			'public'            => true,
+			'show_ui'           => true,
+			'show_admin_column' => true,
+			'show_in_nav_menus' => false,
+			'show_tagcloud'     => true,
+			'rewrite'           => false,
+		);
 
-			if ( ! current_user_can( 'edit_post', $post_id ) ) {
-				return;
-			}
-			if ( $post_type_slug == get_post_type() ) {
-				if ( isset( $_POST['rcreview_reviewer_rating'] ) && $_POST['rcreview_reviewer_rating'] != '' ) {
-					update_post_meta( $post_id, 'rcreview_reviewer_rating', $_POST['rcreview_reviewer_rating'] );
-				}
-				if ( isset( $_POST['rcreview_reviewer_role'] ) && $_POST['rcreview_reviewer_role'] != '' ) {
-					update_post_meta( $post_id, 'rcreview_reviewer_role', $_POST['rcreview_reviewer_role'] );
-				}
+		$labels_agent  = array(
+			'name'                       => _x( 'Agent', 'Taxonomy General Name', 'text_domain' ),
+			'singular_name'              => _x( 'Agent', 'Taxonomy Singular Name', 'text_domain' ),
+			'menu_name'                  => __( 'Agents', 'text_domain' ),
+			'all_items'                  => __( 'Agents', 'text_domain' ),
+			'parent_item'                => __( 'Parent Agent', 'text_domain' ),
+			'parent_item_colon'          => __( 'Parent Agent:', 'text_domain' ),
+			'new_item_name'              => __( 'New Agent', 'text_domain' ),
+			'add_new_item'               => __( 'Add New Agent', 'text_domain' ),
+			'edit_item'                  => __( 'Edit Agent', 'text_domain' ),
+			'update_item'                => __( 'Update Agent', 'text_domain' ),
+			'view_item'                  => __( 'View Agent', 'text_domain' ),
+			'separate_items_with_commas' => __( 'Separate states with commas', 'text_domain' ),
+			'add_or_remove_items'        => __( 'Add or remove states', 'text_domain' ),
+			'choose_from_most_used'      => __( 'Choose from the most used', 'text_domain' ),
+			'popular_items'              => __( 'Popular Agents', 'text_domain' ),
+			'search_items'               => __( 'Search Agents', 'text_domain' ),
+			'not_found'                  => __( 'Not Found', 'text_domain' ),
+			'no_terms'                   => __( 'No states', 'text_domain' ),
+			'items_list'                 => __( 'Agents list', 'text_domain' ),
+			'items_list_navigation'      => __( 'Agents list navigation', 'text_domain' ),
+		);
 
-				if ( isset( $_POST['rcreview_reviewer_name'] ) && $_POST['rcreview_reviewer_name'] != '' ) {
-					update_post_meta( $post_id, 'rcreview_reviewer_name', $_POST['rcreview_reviewer_name'] );
-				}
+		$args_agent    = array(
+			'labels'            => $labels_agent,
+			'hierarchical'      => false,
+			'public'            => true,
+			'show_ui'           => true,
+			'show_admin_column' => true,
+			'show_in_nav_menus' => false,
+			'show_tagcloud'     => true,
+			'rewrite'           => false,
+		);
 
-				if ( isset( $_POST['rcreview_agent_id'] ) && $_POST['rcreview_agent_id'] != '' ) {
-					update_post_meta( $post_id, 'rcreview_agent_id', $_POST['rcreview_agent_id'] );
-				}
 
-				if ( isset( $_POST['rcreview_agent_name'] ) && $_POST['rcreview_agent_name'] != '' ) {
-					update_post_meta( $post_id, 'rcreview_agent_name', $_POST['rcreview_agent_name'] );
-				}
+		$labels_agency  = array(
+			'name'                       => _x( 'Agency', 'Taxonomy General Name', 'text_domain' ),
+			'singular_name'              => _x( 'Agency', 'Taxonomy Singular Name', 'text_domain' ),
+			'menu_name'                  => __( 'Agencies', 'text_domain' ),
+			'all_items'                  => __( 'Agencies', 'text_domain' ),
+			'parent_item'                => __( 'Parent Agency', 'text_domain' ),
+			'parent_item_colon'          => __( 'Parent Agency:', 'text_domain' ),
+			'new_item_name'              => __( 'New Agency', 'text_domain' ),
+			'add_new_item'               => __( 'Add New Agency', 'text_domain' ),
+			'edit_item'                  => __( 'Edit Agency', 'text_domain' ),
+			'update_item'                => __( 'Update Agency', 'text_domain' ),
+			'view_item'                  => __( 'View Agency', 'text_domain' ),
+			'separate_items_with_commas' => __( 'Separate states with commas', 'text_domain' ),
+			'add_or_remove_items'        => __( 'Add or remove states', 'text_domain' ),
+			'choose_from_most_used'      => __( 'Choose from the most used', 'text_domain' ),
+			'popular_items'              => __( 'Popular Agencies', 'text_domain' ),
+			'search_items'               => __( 'Search Agencies', 'text_domain' ),
+			'not_found'                  => __( 'Not Found', 'text_domain' ),
+			'no_terms'                   => __( 'No states', 'text_domain' ),
+			'items_list'                 => __( 'Agencies list', 'text_domain' ),
+			'items_list_navigation'      => __( 'Agencies list navigation', 'text_domain' ),
+		);
 
-				if ( isset( $_POST['rcreview_listing_id'] ) && $_POST['rcreview_listing_id'] != '' ) {
-					update_post_meta( $post_id, 'rcreview_listing_id', $_POST['rcreview_listing_id'] );
-				}
+		$args_agency    = array(
+			'labels'            => $labels_agency,
+			'hierarchical'      => false,
+			'public'            => true,
+			'show_ui'           => true,
+			'show_admin_column' => true,
+			'show_in_nav_menus' => false,
+			'show_tagcloud'     => true,
+			'rewrite'           => false,
+		);
 
-				if ( isset( $_POST['rcreview_unique_id'] ) && $_POST['rcreview_unique_id'] != '' ) {
-					update_post_meta( $post_id, 'rcreview_unique_id', $_POST['rcreview_unique_id'] );
-				}
-			}
-		}
-		add_action( 'save_post', 'save_post_rcreviews_meta_boxes' );
+		// register_taxonomy( 'rcreviews_suburb', array( $post_type_slug ), $args_suburb );
+		// register_taxonomy( 'rcreviews_state', array( $post_type_slug ), $args_state );
+		// register_taxonomy( 'rcreviews_agency_id', array( $post_type_slug ), $args_agency_id );
+		// register_taxonomy( 'rcreviews_agent_id', array( $post_type_slug ), $args_agent_id );
+		register_taxonomy( 'rcreviews_agent_name', array( $post_type_slug ), $args_agent );
+		register_taxonomy( 'rcreviews_agency_name', array( $post_type_slug ), $args_agency );
 	}
 
 	// Move posts from previous custom post type to new custom post type
@@ -414,7 +389,7 @@ class rcreviews_admin {
 		$prev_post_type    = get_option( 'rcreviews_prev_post_type_slug' );
 		$current_post_type = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
 
-		if ( '' != $prev_post_type || $prev_post_type != $current_post_type ) {
+		if ( $prev_post_type && ( $prev_post_type !== $current_post_type ) ) {
 			// Get all posts of the old post type
 			$args       = array(
 				'post_type'      => $prev_post_type,
@@ -446,19 +421,44 @@ class rcreviews_admin {
 		}
 	}
 
-	public function display_plugin_admin_menu() {
-		// add_menu_page( $page_title, $menu_title, $capability, $menu_slug, $function, $icon_url, $position );
-		add_menu_page( $this->plugin_name, 'RC Reviews', 'administrator', $this->plugin_name, array( $this, 'display_plugin_admin_dashboard' ), 'dashicons-star-filled', 26 );
-
-		// add_submenu_page( '$parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function );
-		add_submenu_page( $this->plugin_name, 'RC Reviews Settings', 'Settings', 'administrator', $this->plugin_name . '-settings', array( $this, 'display_plugin_admin_settings' ) );
+	public function display_plugin_admin_menu(): void
+	{
+		$hook_suffix = add_menu_page(
+			$this->plugin_name,
+			'RC Reviews',
+			'administrator',
+			$this->plugin_name,
+			[ $this, 'display_plugin_admin_dashboard' ],
+			'dashicons-star-filled',
+			26
+		);
+	
+		$sub_hook_suffix = add_submenu_page(
+			$this->plugin_name,
+			'RC Reviews Settings',
+			'Settings',
+			'administrator',
+			$this->plugin_name . '-settings',
+			[ $this, 'display_plugin_admin_settings' ]
+		);
+	
+		// Ensure environment variables are synced, if you want
+		add_action( 'load-' . $hook_suffix, [ $this, 'rcreviews_maybe_update_options_from_env' ] );
+		add_action( 'load-' . $sub_hook_suffix, [ $this, 'rcreviews_maybe_update_options_from_env' ] );
+	
+		// Ensure token is fresh
+		add_action( 'load-' . $hook_suffix, [ $this, 'refresh_access_token_if_needed' ] );
+		add_action( 'load-' . $sub_hook_suffix, [ $this, 'refresh_access_token_if_needed' ] );
 	}
+	
 
-	public function display_plugin_admin_dashboard() {
+	public function display_plugin_admin_dashboard(): void
+	{
 		require_once 'partials/' . $this->plugin_name . '-admin-display.php';
 	}
-	public function display_plugin_admin_settings() {
-		// set this var to be used in the settings-display view
+
+	public function display_plugin_admin_settings(): void
+	{
 		$active_tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'general';
 
 		if ( isset( $_GET['error_message'] ) ) {
@@ -467,7 +467,9 @@ class rcreviews_admin {
 		}
 		require_once 'partials/' . $this->plugin_name . '-admin-settings-display.php';
 	}
-	public function rcreviews_settings_messages( $error_message ) {
+
+	public function rcreviews_settings_messages( $error_message ): void
+	{
 		switch ( $error_message ) {
 			case '1':
 				$message       = __( 'There was an error adding this setting. Please try again.  If this persists, shoot us an email.', 'my-text-domain' );
@@ -483,31 +485,20 @@ class rcreviews_admin {
 			$type
 		);
 	}
-	public function register_and_build_fields() {
-		/**
-		 * First, we add_settings_section. This is necessary since all future settings must belong to one.
-		 * Second, add_settings_field
-		 * Third, register_setting
-		 */
+
+	public function register_and_build_fields(): void
+	{
 		add_settings_section(
-			// ID used to identify this section and with which to register options
 			'rcreviews_settings_section',
-			// Title to be displayed on the administration page
 			'Client Credentials',
-			// Callback used to render the description of the section
 			array( $this, 'rcreviews_settings_account' ),
-			// Page on which to add this section of options
 			'rcreviews_settings'
 		);
 
 		add_settings_section(
-			// ID used to identify this section and with which to register options
 			'rcreviews_main_settings_section',
-			// Title to be displayed on the administration page
 			'Import Details',
-			// Callback used to render the description of the section
 			array( $this, 'rcreviews_main_settings_account' ),
-			// Page on which to add this section of options
 			'rcreviews_main_settings'
 		);
 
@@ -757,57 +748,45 @@ class rcreviews_admin {
 			'rcreviews_custom_post_type_slug'
 		);
 	}
-	public function register_default_values_for_settings_field() {
-		if ( getenv( 'REA_CLIENT_ID' ) ) {
-			update_option( 'rcreviews_client_id', getenv( 'REA_CLIENT_ID' ) );
+
+	function rcreviews_maybe_update_options_from_env() {
+		static $has_synced = false;
+
+		// Only run this sync once per request, even if it's called multiple times.
+		if ( $has_synced ) {
+			return;
 		}
-		if ( getenv( 'REA_CLIENT_SECRET' ) ) {
-			update_option( 'rcreviews_client_secret', getenv( 'REA_CLIENT_SECRET' ) );
+		$has_synced = true;
+
+		$mapping = array(
+			'rcreviews_client_id'          => 'REA_CLIENT_ID',
+			'rcreviews_client_secret'      => 'REA_CLIENT_SECRET',
+			'rcreviews_agency_id'          => 'REA_AGENCY_ID',
+			'rcreviews_custom_post_type_slug' => 'REA_POST_TYPE_SLUG',
+		);
+
+		foreach ( $mapping as $wp_option_key => $env_key ) {
+			$env_value = getenv( $env_key );
+			if ( false !== $env_value ) {
+				$current_value = get_option( $wp_option_key );
+				if ( $env_value !== $current_value ) {
+					// Only update if changed
+					update_option( $wp_option_key, $env_value );
+				}
+			}
 		}
-		if ( getenv( 'REA_AGENCY_ID' ) ) {
-			update_option( 'rcreviews_agency_id', getenv( 'REA_AGENCY_ID' ) );
-		}
-		if ( getenv( 'REA_POST_TYPE_SLUG' ) ) {
-			update_option( 'rcreviews_custom_post_type_slug', getenv( 'REA_POST_TYPE_SLUG' ) );
-		}
-		if ( '' == get_option( 'rcreviews_current_post_type_slug' ) ) {
+
+		// Handle the fallback for rcreviews_current_post_type_slug
+		$current_post_type = get_option( 'rcreviews_current_post_type_slug' );
+		if ( '' === $current_post_type ) {
 			update_option( 'rcreviews_current_post_type_slug', 'rcreviews' );
 		}
-
-		$post_type = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
-
-		if ( get_option( 'rcreviews_current_post_type_slug' ) != get_option( 'rcreviews_custom_post_type_slug' ) ) {
-			update_option( 'rcreviews_prev_post_type_slug', get_option( 'rcreviews_current_post_type_slug' ) );
-			update_option( 'rcreviews_current_post_type_slug', $post_type );
-		}
-
-		$url           = 'https://api.realestate.com.au/oauth/token';
-		$client_id     = get_option( 'rcreviews_client_id' );
-		$client_secret = get_option( 'rcreviews_client_secret' );
-		$data          = array( 'grant_type' => 'client_credentials' );
-
-		$ch = curl_init();
-		curl_setopt( $ch, CURLOPT_URL, $url );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_USERPWD, "$client_id:$client_secret" );
-		curl_setopt( $ch, CURLOPT_POST, true );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, http_build_query( $data ) );
-
-		$output = curl_exec( $ch );
-
-		// if ($output === FALSE) {
-		// echo "cURL Error: " . curl_error($ch);
-		// }
-
-		curl_close( $ch );
-
-		// Now you can process the output
-		$response = json_decode( $output, true );
-
-		if ( isset( $response['access_token'] ) ) {
-			update_option( 'rcreviews_access_token', $response['access_token'] );
-		} else {
-			update_option( 'rcreviews_access_token', '' );
+		
+		// If the newly-set custom slug differs from the current, record the previous
+		$custom_slug = get_option( 'rcreviews_custom_post_type_slug', 'rcreviews' );
+		if ( $custom_slug !== get_option( 'rcreviews_current_post_type_slug' ) ) {
+			update_option( 'rcreviews_prev_post_type_slug', $current_post_type );
+			update_option( 'rcreviews_current_post_type_slug', $custom_slug );
 		}
 	}
 
@@ -886,6 +865,8 @@ class rcreviews_admin {
 			$content      = '';
 			$agent_id     = 0;
 			$agent_name   = '';
+			$agency_id     = 0;
+			$agency_name   = '';
 			$listing_id   = 0;
 			$unique_id    = 0;
 
@@ -912,6 +893,12 @@ class rcreviews_admin {
 				if ( isset( $review['agent']['name'] ) ) {
 					$agent_name = $review['agent']['name'];
 				}
+				if ( isset( $review['agency']['id'] ) ) {
+					$agency_id = $review['agency']['id'];
+				}
+				if ( isset( $review['agency']['name'] ) ) {
+					$agency_name = $review['agency']['name'];
+				}
 				if ( isset( $review['listing']['id'] ) ) {
 					$listing_id = $review['listing']['id'];
 				}
@@ -931,6 +918,8 @@ class rcreviews_admin {
 						'rcreview_reviewer_name'   => $name,
 						'rcreview_agent_id'        => $agent_id,
 						'rcreview_agent_name'      => $agent_name,
+						'rcreview_agency_id'       => $agency_id,
+						'rcreview_agency_name'     => $agency_name,
 						'rcreview_listing_id'      => $listing_id,
 						'rcreview_unique_id'       => $unique_id,
 					),
@@ -950,10 +939,40 @@ class rcreviews_admin {
 				$posts = get_posts( $args_by_unique_id );
 
 				if ( ! empty( $posts ) ) {
-					$current_post['ID'] = $posts[0]->ID;
+					$post_id = $posts[0]->ID;
 					wp_update_post( $current_post );
 				} else {
 					wp_insert_post( $current_post );
+					$post_id = get_posts( $args_by_unique_id )[0]->ID;
+				}
+
+				if ( $post_id && ! is_wp_error( $post_id ) && ! empty( $agent_id ) && ! empty( $agent_name ) ) {
+					// Ensure agency_id term exists
+					if ( ! term_exists( (string) $agency_name, 'rcreviews_agency_name' ) ) {
+						wp_insert_term( 
+							(string) $agency_name, 
+							'rcreviews_agency_name',
+							array(
+								'slug' => $agency_id,
+							) 
+						);
+					}
+					// Ensure agent_id term exists
+					if ( ! term_exists( (string) $agent_name, 'rcreviews_agent_name' ) ) {
+						wp_insert_term( 
+							(string) $agent_name, 
+							'rcreviews_agent_name',
+							array(
+								'slug' => $agent_id,
+								'description' => $agency_name,
+							) 
+						);
+					}
+
+					// wp_set_object_terms( $post_id, (string) $agent_id, 'rcreviews_agent_id', false );
+					wp_set_object_terms( $post_id, (string) $agent_name, 'rcreviews_agent_name', false );
+					// wp_set_object_terms( $post_id, (string) $agency_id, 'rcreviews_agency_id', false );
+					wp_set_object_terms( $post_id, (string) $agency_name, 'rcreviews_agency_name', false );
 				}
 
 				++$item_counter;
@@ -1044,6 +1063,8 @@ class rcreviews_admin {
 				'max_reviews'             => -1,
 				'shown_reviews'           => 3,
 				'min_stars'               => 5,
+				'agency_id'               => '',
+				'agency_name'             => '',
 				'agent_id'                => '',
 				'agent_name'              => '',
 				'view'                    => 'list',
@@ -1081,6 +1102,42 @@ class rcreviews_admin {
 				'compare' => '>=',
 			),
 		);
+
+		if ( ! empty( $atts['agency_id'] ) && ! empty( $atts['agency_name'] ) ) {
+			$agency_names  = explode( ',', $atts['agency_name'] );
+			$agency_ids    = explode( ',', $atts['agency_id'] );
+			$meta_query[] = array(
+				'relation' => 'OR',
+				array(
+					'key'     => 'rcreview_agency_id',
+					'value'   => $agency_ids,
+					'compare' => 'IN',
+				),
+				array(
+					'key'     => 'rcreview_agency_name',
+					'value'   => $agency_names,
+					'compare' => 'IN',
+				),
+			);
+		} elseif ( ! empty( $atts['agency_id'] ) && empty( $atts['agency_name'] ) ) {
+			$agency_ids    = explode( ',', $atts['agency_id'] );
+			$meta_query[] = array(
+				array(
+					'key'     => 'rcreview_agency_id',
+					'value'   => $agency_ids,
+					'compare' => 'IN',
+				),
+			);
+		} elseif ( ! empty( $atts['agency_name'] ) && empty( $atts['agency_id'] ) ) {
+			$agency_names  = explode( ',', $atts['agency_name'] );
+			$meta_query[] = array(
+				array(
+					'key'     => 'rcreview_agency_name',
+					'value'   => $agency_names,
+					'compare' => 'IN',
+				),
+			);
+		}
 
 		if ( ! empty( $atts['agent_id'] ) && ! empty( $atts['agent_name'] ) ) {
 			$agent_names  = explode( ',', $atts['agent_name'] );
@@ -1245,161 +1302,169 @@ class rcreviews_admin {
 		return $output;
 	}
 
-	public function rcreviews_cron_exec() {
+	public function rcreviews_cron_exec(): void
+	{
+		$this->refresh_access_token_if_needed();
+
 		$agency_id           = get_option( 'rcreviews_agency_id' );
 		$minimum_star_rating = get_option( 'rcreviews_minimum_star_rating' );
-		$numbers             = '';
-
-		if ( $minimum_star_rating ) {
-			for ( $i = $minimum_star_rating; $i <= 5; $i++ ) {
-				$numbers .= $i . ',';
-			}
-			$minimum_star_rating = '&ratings=' . rtrim( $numbers, ',' );
-		} else {
-			$minimum_star_rating = '';
-		}
-
+		$rating_param = $this->build_rating_param( $minimum_star_rating );
+	
 		$date = new DateTime();
 		$date->modify( '-30 days' );
-		$dateString  = $date->format( 'Y-m-d\TH:i:s\Z' );
-		$encodedDate = urlencode( $dateString );
-
-		$url_first = 'https://api.realestate.com.au/customer-profile/v1/ratings-reviews/agencies/' . $agency_id . '?since=' . $encodedDate . '&order=DESC' . $minimum_star_rating;
-
-		function rcreviews_cron_exec_feed( $url ) {
-			$access_token = get_option( 'rcreviews_access_token' );
-			$post_type    = get_option( 'rcreviews_custom_post_type_slug' ) ? : 'rcreviews';
-			$ch           = curl_init();
-
-			curl_setopt( $ch, CURLOPT_URL, $url );
-			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
-			curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, 'GET' );
-
-			$headers   = array();
-			$headers[] = 'Accept: application/hal+json';
-			$headers[] = 'Authorization: Bearer ' . $access_token;
-
-			curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
-			$result = curl_exec( $ch );
-
-			if ( curl_errno( $ch ) ) {
-				echo 'Error:' . curl_error( $ch );
-			}
-
-			curl_close( $ch );
-
-			$data         = json_decode( $result, true );
-			$rating       = 0;
-			$role         = 'Seller';
-			$name         = '';
-			$created_date = '';
-			$content      = '';
-			$agent_id     = 0;
-			$agent_name   = '';
-			$listing_id   = 0;
-			$unique_id    = 0;
-
-			foreach ( $data['result'] as $review ) {
-				if ( isset( $review['rating'] ) ) {
-					$rating = $review['rating'];
-				}
-				if ( isset( $review['reviewer']['role'] ) ) {
-					$role = ucfirst( $review['reviewer']['role'] );
-				}
-				if ( isset( $review['reviewer']['name'] ) ) {
-					$name = ucfirst( $review['reviewer']['name'] );
-				}
-				if ( isset( $review['createdDate'] ) ) {
-					$created_date            = $review['createdDate'];
-					$created_date_as_post_id = strtotime( $review['createdDate'] );
-				}
-				if ( isset( $review['content'] ) ) {
-					$content = $review['content'];
-				}
-				if ( isset( $review['agent']['profileId'] ) ) {
-					$agent_id = $review['agent']['profileId'];
-				}
-				if ( isset( $review['agent']['name'] ) ) {
-					$agent_name = $review['agent']['name'];
-				}
-				if ( isset( $review['listing']['id'] ) ) {
-					$listing_id = $review['listing']['id'];
-				}
-				$unique_id = $listing_id . '-' . $agent_id . '-' . $created_date_as_post_id;
-
-				// Insert post
-				$current_post = array(
-					'post_title'   => $role . ' of house',
-					'post_content' => $content,
-					'post_status'  => 'publish',
-					'post_author'  => 1,
-					'post_date'    => $created_date,
-					'post_type'    => $post_type,
-					'meta_input'   => array(
-						'rcreview_reviewer_rating' => $rating,
-						'rcreview_reviewer_role'   => $role,
-						'rcreview_reviewer_name'   => $name,
-						'rcreview_agent_id'        => $agent_id,
-						'rcreview_agent_name'      => $agent_name,
-						'rcreview_listing_id'      => $listing_id,
-						'rcreview_unique_id'       => $unique_id,
-					),
-				);
-
-				$args_by_unique_id = array(
-					'post_type'  => $post_type,
-					'meta_query' => array(
-						array(
-							'key'   => 'rcreview_unique_id',
-							'value' => $unique_id,
-						),
-					),
-				);
-
-				// Insert post
-				$posts = get_posts( $args_by_unique_id );
-
-				if ( ! empty( $posts ) ) {
-					$current_post['ID'] = $posts[0]->ID;
-					wp_update_post( $current_post );
-				} else {
-					wp_insert_post( $current_post );
-				}
-			}
-
-			$url_next = $data['_links']['next']['href'];
-
-			update_option( 'rcreviews_last_import', date( 'd F Y H:i:s' ) );
-
-			// error_log( $url );
-
-			if ( $url_next ) {
-				rcreviews_cron_exec_feed( $url_next );
-			}
+		$since       = urlencode( $date->format( 'Y-m-d\TH:i:s\Z' ) ); 
+		$base_url    = 'https://api.realestate.com.au/customer-profile/v1/ratings-reviews/agencies/';
+		$url_first   = "{$base_url}{$agency_id}?since={$since}&order=DESC{$rating_param}";
+		
+		$this->fetch_and_process_reviews( $url_first );
+	}
+	
+	private function build_rating_param( $minimum_star_rating ) {
+		if ( empty( $minimum_star_rating ) ) {
+			return '';
+		}
+	
+		$numbers = array();
+		for ( $i = $minimum_star_rating; $i <= 5; $i++ ) {
+			$numbers[] = $i;
+		}
+		return '&ratings=' . implode( ',', $numbers );
+	}
+	
+	private function fetch_and_process_reviews( $url ): void
+	{
+		$access_token = get_option( 'rcreviews_access_token' );
+	
+		$args = array(
+			'headers' => array(
+				'Accept'        => 'application/hal+json',
+				'Authorization' => 'Bearer ' . $access_token,
+			),
+			'timeout' => 20,
+		);
+	
+		$response = wp_remote_get( $url, $args );
+	
+		if ( is_wp_error( $response ) ) {
+			error_log( 'rcreviews_cron_exec WP Error: ' . $response->get_error_message() );
+			return;
+		}
+	
+		$status_code = wp_remote_retrieve_response_code( $response );
+		if ( $status_code >= 400 ) {
+			error_log( "rcreviews_cron_exec HTTP Error: Received status code {$status_code}" );
+			return;
 		}
 
-		rcreviews_cron_exec_feed( $url_first );
+		$body = wp_remote_retrieve_body( $response );
+		if ( empty( $body ) ) {
+			error_log( 'rcreviews_cron_exec: Empty response body.' );
+			return;
+		}
+	
+		$data = json_decode( $body, true );
+		if ( ! isset( $data['result'] ) || ! is_array( $data['result'] ) ) {
+			error_log( 'rcreviews_cron_exec: Invalid or missing "result" data.' );
+			return;
+		}
+	
+		foreach ( $data['result'] as $review ) {
+			$this->upsert_review_post( $review );
+		}
+	
+		update_option( 'rcreviews_last_import', date( 'd F Y H:i:s' ) );
+	
+		if ( ! empty( $data['_links']['next']['href'] ) ) {
+			$this->fetch_and_process_reviews( $data['_links']['next']['href'] );
+		}
+	}
+	
+	
+	/**
+	 * Inserts or updates a single “review” post based on unique_id.
+	 */
+	private function upsert_review_post( array $review ) {
+		$post_type = get_option( 'rcreviews_custom_post_type_slug' ) ?: 'rcreviews';
+	
+		// Extract fields, fallback to sensible defaults
+		$rating        = $review['rating']                     ?? 0;
+		$role          = isset( $review['reviewer']['role'] ) 
+							? ucfirst( $review['reviewer']['role'] ) 
+							: 'Seller';
+		$name          = isset( $review['reviewer']['name'] ) 
+							? ucfirst( $review['reviewer']['name'] ) 
+							: '';
+		$created_date  = $review['createdDate']                ?? '';
+		$content       = $review['content']                    ?? '';
+		$agent_id      = $review['agent']['profileId']         ?? 0;
+		$agent_name    = $review['agent']['name']              ?? '';
+		$agency_id     = $review['agency']['id']          	   ?? 0;
+		$agency_name   = $review['agency']['name']             ?? 0;
+		$listing_id    = $review['listing']['id']              ?? 0;
+	
+		// A unique ID to detect if we already have this review
+		$created_ts = $created_date ? strtotime( $created_date ) : '';
+		$unique_id  = "{$listing_id}-{$agent_id}-{$created_ts}";
+	
+		$current_post = array(
+			'post_title'   => $role . ' of house',
+			'post_content' => $content,
+			'post_status'  => 'publish',
+			'post_author'  => 1,  // or use a filter if you prefer
+			'post_date'    => $created_date,
+			'post_type'    => $post_type,
+			'meta_input'   => array(
+				'rcreview_reviewer_rating' => $rating,
+				'rcreview_reviewer_role'   => $role,
+				'rcreview_reviewer_name'   => $name,
+				'rcreview_agent_id'        => $agent_id,
+				'rcreview_agent_name'      => $agent_name,
+				'rcreview_agency_id'      => $agency_id,
+				'rcreview_agency_name'      => $agency_name,
+				'rcreview_listing_id'      => $listing_id,
+				'rcreview_unique_id'       => $unique_id,
+			),
+		);
+	
+		// Search for existing post by this unique meta key
+		$existing = get_posts( array(
+			'post_type'  => $post_type,
+			'meta_query' => array(
+				array(
+					'key'   => 'rcreview_unique_id',
+					'value' => $unique_id,
+				),
+			),
+		) );
+	
+		if ( ! empty( $existing ) ) {
+			$current_post['ID'] = $existing[0]->ID;
+			wp_update_post( $current_post );
+		} else {
+			wp_insert_post( $current_post );
+		}
 	}
 
-	public function rcreviews_cron_schedules( $schedules ) {
-		$hour     = get_option( 'rcreviews_sync_interval' ) ? : 24;
+	public function rcreviews_cron_schedules( $schedules ): array
+	{
+		$hour = get_option( 'rcreviews_sync_interval' ) ? : 24;
 		$interval = $hour * 60 * 60;
 
-		$schedules['rcreviews_interval'] = array(
+		$schedules['rcreviews_interval'] = [
 			'interval' => $interval,
 			'display'  => esc_html__( 'Every ' . $hour . ' Hour(s)' ),
-		);
+		];
 		return $schedules;
 	}
 
-	public function rcreviews_cron_refresh() {
-		// Unschedule the existing event
+	public function rcreviews_cron_refresh(): void
+	{
 		$timestamp = wp_next_scheduled( 'rcreviews_cron_hook' );
+		
 		if ( $timestamp ) {
 			wp_unschedule_event( $timestamp, 'rcreviews_cron_hook' );
 		}
-
-		// Schedule a new event
+		
 		wp_schedule_event( time(), 'rcreviews_interval', 'rcreviews_cron_hook' );
 	}
 }
