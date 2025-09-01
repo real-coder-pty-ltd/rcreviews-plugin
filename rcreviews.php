@@ -9,14 +9,14 @@
  * that starts the plugin.
  *
  * @link              https://realcoder.com.au
- * @since             1.1.0
+ * @since             1.0.0
  * @package           Rcreviews
  *
  * @wordpress-plugin
  * Plugin Name:       Sync Reviews from REA (realestate.com.au)
  * Plugin URI:        https://realcoder.com.au/
  * Description:       Sync your realestate.com.au reviews to your real estate website via the REA API.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Author:            Real Coder
  * Author URI:        https://realcoder.com.au/
  * License:           GPL-2.0+
@@ -35,7 +35,7 @@ if ( ! defined( 'WPINC' ) ) {
  * Start at version 1.0.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define( 'RCREVIEWS_VERSION', '1.0.0' );
+define( 'RCREVIEWS_VERSION', '1.1.0' );
 
 /**
  * The code that runs during plugin activation.
